@@ -1,27 +1,28 @@
-
 from threading import Thread
+import pwd
+
 from gi.repository import GLib
+from proto97.db import db, subtype_to_string
+from proto97.sensor import cancel_capture, identify
+from proto97.sid import sid_from_string
+from proto97.tls import tls
+from proto97.usb import usb
+from prototype import open97
 from pydbus import SystemBus
 from pydbus.generic import signal
-import pkg_resources
-from time import sleep
-from prototype import *
-from proto97.db import subtype_to_string
-from proto97.sensor import cancel_capture
-import pwd
 
 print("Starting up")
 
-loop = GLib.MainLoop()
+LOOP = GLib.MainLoop()
 
-usb.quit = lambda e: loop.quit()
+usb.quit = lambda e: LOOP.quit()
 
 def uname2identity(uname):
+
     if uname == '':
         # For some reason Gnome enrollment UI does not send the user name
         # (it also ignores our num-enroll-stages attribute). I probably should upgrade Gnome
-        print('No username specified. ')
-        uname = 'unicorn'
+        raise Exception('No username specified')
     pw=pwd.getpwnam(uname)
     sidstr='S-1-5-21-111111111-1111111111-1111111111-%d' % pw.pw_uid
     return sid_from_string(sidstr)
@@ -36,14 +37,16 @@ class Device():
         setattr(self, 'num-enroll-stages', 7)
         setattr(self, 'scan-type', 'press')
         self.capturing = False
+        self.user = None
 
-    def Claim(self, usr):
-        print('In Claim %s' % usr)
+    def Claim(self, user_name):
+        print('In Claim %s' % user_name)
+        self.claimed = user_name
 
     def Release(self):
         print('In Release')
-        self.caimed = False
-        
+        self.claimed = None
+
     def ListEnrolledFingers(self, usr):
         try:
             print('In ListEnrolledFingers %s' % usr)
@@ -53,12 +56,12 @@ class Device():
             if usr == None:
                 print('User not found on this device')
                 return []
-            
+
             rc = [subtype_to_string(f['subtype']) for f in usr.fingers]
             print(repr(rc))
             return rc
         except Exception as e:
-            loop.quit()
+            LOOP.quit()
             raise e
 
     def do_scan(self):
@@ -71,7 +74,7 @@ class Device():
             self.VerifyStatus('verify-match', True)
         except Exception as e:
             self.VerifyStatus('verify-no-match', True)
-            #loop.quit();
+            #LOOP.quit();
             raise e
         finally:
             self.capturing = False
@@ -99,18 +102,18 @@ class Device():
         # it is pointless to try and remember username passed in claim as Gnome does not seem to be passing anything useful anyway
         try:
             # hardcode the username and finger for now
-            z=enroll(uname2identity('unicorn'), 0xf5)
+            z=enroll(uname2identity(self.claimed), 0xf5)
             print('Enroll was successfull')
             self.EnrollStatus('enroll-completed', True)
         except Exception as e:
             self.EnrollStatus('enroll-failed', True)
-            #loop.quit();
+            #LOOP.quit();
             raise e
 
     def EnrollStart(self, finger_name):
         print('In EnrollStart %s' % finger_name)
         Thread(target=lambda: self.do_enroll(finger_name)).start()
-        
+
 
     def EnrollStop(self):
         print('In EnrollStop')
@@ -142,21 +145,23 @@ def readif(fn):
                 .replace('&ERROR_INVALID_FINGERNAME;', 'net.reactivated.Fprint.Error.InvalidFingername') \
                 .replace('&ERROR_NO_SUCH_DEVICE;', 'net.reactivated.Fprint.Error.NoSuchDevice')
 
+
 Device.dbus=[readif('net.reactivated.Fprint.Device.xml')]
 Manager.dbus=[readif('net.reactivated.Fprint.Manager.xml')]
 
 
-bus = SystemBus()
-bus.publish('net.reactivated.Fprint', 
-        ('/net/reactivated/Fprint/Manager', Manager()), 
-        ('/net/reactivated/Fprint/Device/0', Device())
-    )
+BUS = SystemBus()
+BUS.publish(
+    'net.reactivated.Fprint',
+    ('/net/reactivated/Fprint/Manager', Manager()),
+    ('/net/reactivated/Fprint/Device/0', Device())
+)
 
 open97()
 
-usb.trace_enabled = True
-tls.trace_enabled = True
+usb.trace_enabled = False
+tls.trace_enabled = False
 
-loop.run()
+LOOP.run()
 
 print("Normal exit")

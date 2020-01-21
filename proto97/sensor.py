@@ -26,12 +26,12 @@ def cancel_capture():
     #sleep(0.2)
     #rsp=tls.app(b'\x04')
     #assert_status(rsp)
-    usb.read_82()
-    
+    usb.read_82(timeout=1)
+
 def wait_for_finger():
     while True:
         b=usb.wait_int()
-        
+
         if len(b) == 0:
             raise Exception('Cancelled')
 
@@ -44,7 +44,7 @@ def get_prg_status():
 def wait_till_finished():
     while True:
         status = get_prg_status()
-        
+
         if status[0] in [0, 7]:
             break
 
@@ -67,7 +67,7 @@ def capture(prg):
         wait_till_finished()
     finally:
         res=stop_prg()
-    
+
     while True:
         b=usb.wait_int()
         if b[0] != 3:
@@ -78,7 +78,7 @@ def capture(prg):
 
     assert_status(res)
     res = res[2:]
-    
+
     l, res = res[:4], res[4:]
     l, = unpack('<L', l)
 
@@ -98,7 +98,7 @@ def append_new_image(key=0, prev=b''):
 
     rsp=tls.app(b'\x6b' + prev)
     assert_status(rsp)
-    
+
     usb.wait_int()
 
     rsp=tls.app(b'\x6b' + prev)
@@ -156,11 +156,11 @@ def enroll(identity, subtype):
         if err != 0:
             print('Error %08x, try again' % err)
             continue
-        
+
         key, rsp, template = append_new_image(key, template)
 
         print('Progress: %d %% done' % rsp[0x3c])
-        
+
         if rsp[0x3c] == 100:
             break
 
@@ -173,7 +173,7 @@ def enroll(identity, subtype):
         usr = db.new_user(identity)
     else:
         usr = usr.dbid
-    
+
     recid = db.new_finger(usr, tinfo)
 
     glow_end_enroll()
@@ -191,7 +191,7 @@ def parse_dict(x):
 
     return rc
 
-    
+
 def identify():
     glow_start_scan()
     try:
@@ -227,7 +227,7 @@ def identify():
 
     #for k in rsp:
     #    print('%04x: %s (%d)' % (k, hexlify(rsp[k]).decode(), len(rsp[k])))
-    
+
 #0001: 09000000 (4)
 #0003: f500 (2)
 #0004: 8dee792532d3432d41c872fd4d6d590fbc855ad449cf2753cd919eb9c94675c6 (32)
@@ -253,7 +253,7 @@ def identify():
     if len(finger_record.children) > 0:
         if finger_record.children[0]['type'] != 8:
             raise Exception('Expected data blob as a finger child')
-        
+
         blob_id = finger_record.children[0]['dbid']
         blob = db.get_record_value(blob_id).value
 
@@ -261,7 +261,7 @@ def identify():
         val = blob[4:4+sz]
 
         print('Data blob associated with the finger: %04x: %s' % (tag, hexlify(val).decode()))
-        
+
     return rsp
 
 

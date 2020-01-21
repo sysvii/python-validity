@@ -23,6 +23,3 @@ def load97():
     #tls.trace_enabled = True
     usb.open()
     tls.load()
-
-
-

@@ -25,7 +25,7 @@ def sid_from_bytes(b):
     for i in b[2:8]:
         auth <<= 8
         auth |= i
-    
+
     subauth=unpack('<%dL' % subcnt, b[8:])
 
     return SidIdentity(revision, auth, subauth)

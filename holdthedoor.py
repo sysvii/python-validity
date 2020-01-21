@@ -37,4 +37,4 @@ sleep(0.2)
 release_interface(dev, 0)
 
 # sit here, until the user press enter
-raw_input()
+input()

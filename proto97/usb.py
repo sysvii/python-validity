@@ -68,7 +68,7 @@ class Usb():
         rsp=self.cmd(unhexlify('4302'))
 
         assert_status(self.cmd(init_hardcoded))
-        
+
         (err,), rsp = unpack('<H', rsp[:2]), rsp[2:]
         if err != 0:
             # fwext is not loaded
@@ -83,9 +83,9 @@ class Usb():
         self.trace('<cmd< %s' % hexlify(resp).decode())
         return resp
 
-    def read_82(self):
+    def read_82(self, timeout=10000):
         try:
-            resp = self.dev.read(130, 1024*1024, timeout=10000)
+            resp = self.dev.read(130, 1024*1024, timeout=timeout)
             resp = bytes(resp)
             self.trace('<130< %s' % hexlify(resp).decode())
             return resp
