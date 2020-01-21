@@ -7,7 +7,7 @@ from proto97.sensor import cancel_capture, identify
 from proto97.sid import sid_from_string
 from proto97.tls import tls
 from proto97.usb import usb
-from prototype import open97
+from proto97.init import open97
 from pydbus import SystemBus
 from pydbus.generic import signal
 
@@ -157,7 +157,7 @@ BUS.publish(
     ('/net/reactivated/Fprint/Device/0', Device())
 )
 
-open97()
+open97(usb, tls)
 
 usb.trace_enabled = False
 tls.trace_enabled = False
