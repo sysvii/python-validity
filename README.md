@@ -115,19 +115,22 @@ Template hash: 36bc1fe077e59a3090c816fcf2798c30a85d8a8fbe000ead5c6a946c3bacef7b
 ## DBus service
 Sources contain a simple DBus service which can impersonate [fprint](https://www.freedesktop.org/wiki/Software/fprint/) daemon. 
 Install fprint, edit /usr/share/dbus-1/system-services/net.reactivated.Fprint.service by commenting out activation info:
+
 ```
 #Exec=/usr/lib/fprintd/fprintd
 #User=root
 #SystemdService=fprintd.service
 ```
-start a fake service with something like this:
+
+A script to start a fake service is included `dbus.sh`.
+To set this up create a virtualenv with `python3 -m venv venv && source
+venv/bin/activate && pip install -r requirements.txt`
+
 ```
-while sleep 1; do
-    python3 dbus-service.py
-    echo "====restart==="
-done
+Exec=/bin/sh /path/to/dbus.sh
 ```
 
+[Do not forget to setup fprintd as a method of login](https://wiki.archlinux.org/index.php/Fprint#Login_configuration).
 
 ## Debugging
 If you are curious you can enable tracing to see what flows in and out of device before and after encryption
